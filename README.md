@@ -1,2 +1,2 @@
-# loquet
+# loqet
 Local python secret manager

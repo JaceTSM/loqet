@@ -1,0 +1,5 @@
+active_context: sample_project
+contexts:
+  sample_project:
+    loqet_dir: /usr/me/sample_project/loqet
+    keyfile: sample_project.key
