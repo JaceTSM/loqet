@@ -1,7 +1,7 @@
 import os
 from cryptography.fernet import Fernet
-from src.loqet.loqet_configs import LOQET_CONFIG_DIR, LOQET_KEY_FILE
-from src.loqet.utilities import backup_file
+from loqet.loqet_configs import LOQET_CONFIG_DIR, LOQET_KEY_FILE
+from loqet.utilities import backup_file
 
 
 def generate_secret_key():

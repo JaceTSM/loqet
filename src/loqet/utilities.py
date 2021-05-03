@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 
-from src.loqet.loqet_configs import SAFE_MODE
+from loqet.loqet_configs import SAFE_MODE
 
 
 def backup_file(filename):

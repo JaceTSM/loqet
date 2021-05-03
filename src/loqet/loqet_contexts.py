@@ -14,20 +14,18 @@ Terms
 loq_config:     An encrypted yaml that stores secret configs.
                 A loq_config's name is it's filename minus extension
 
-loqet:          A groups of loq_configs that act as a secret store together.
-                Secrets are namespaced by the name of the loq_config.
+loqet_context:  active project loqet to interact with. Consists of a list
+                of loq files.
 
-loqet_context:  active project loqet to interact with
+loqet:          A single namespace in a loqet context
 
 """
 
-import json
 import os
 import yaml
-from src.loqet.secret_keys import write_secret_key
-from src.loqet.encryption_suite import read_loq_file
-from src.loqet.loqet_configs import LOQET_CONTEXTS_FILE, INVALID_CONTEXT_NAMES
-from src.loqet.exceptions import (
+from loqet.secret_keys import write_secret_key
+from loqet.loqet_configs import LOQET_CONTEXTS_FILE, INVALID_CONTEXT_NAMES
+from loqet.exceptions import (
     LoqetInvalidConfigException,
     LoqetContextConflictException,
     LoqetInvalidContextException
@@ -42,6 +40,16 @@ from src.loqet.exceptions import (
 
 
 class ContextConfig(object):
+    """
+    Loqet saves a config defining multiple contexts. A context manages
+    a single loqet secret store for a project.
+
+    Context structure:
+    context = {
+        "loqet_dir": loqet_dir,
+        "keyfile": keyfile,
+    }
+    """
     _config_defaults = {
         "active_context": None,
         "contexts": {},
@@ -125,13 +133,22 @@ def create_loqet_context(context_name, loqet_dir, secret_key=None):
 
 
 # loqet context get
-def get_active_context():
+def get_active_context_name():
     context_config = ContextConfig()
     return context_config.active_context
 
 
 # loqet context info
 def get_context_info(context_name=None):
+    """
+    Returns keyfile, not the actual key content so it isn't written
+    to console. Extract key in another method.
+
+    :return: {
+        "loqet_dir": _,
+        "keyfile": _,
+    }
+    """
     context_config = ContextConfig()
     if not context_name:
         context_name = context_config.active_context
@@ -170,3 +187,28 @@ def list_loqet_contexts():
         print(f"{context_name.ljust(longest_context + 1)}: {context['loqet_dir']}")
 
 
+##############
+# Key Access #
+##############
+
+def get_context_key(context_info):
+    with open(context_info["keyfile"], "r") as f:
+        key = f.read().strip()
+    return key
+
+
+def get_active_context_key():
+    context_name = get_active_context_name()
+    context_info = get_context_info(context_name)
+    return get_context_key(context_info)
+
+
+def get_context(context_name=None):
+    if not context_name:
+        context_name = get_active_context_name()
+    context_info = get_context_info(context_name)
+    loqet_keyfile = context_info["keyfile"]
+    loqet_dir = context_info["loquet_dir"]
+    with open(loqet_keyfile, "rb") as f:
+        secret_key = f.read()
+    return loqet_dir, secret_key
