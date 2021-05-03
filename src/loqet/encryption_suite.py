@@ -170,7 +170,7 @@ def loq_diff(path_1, path_2, secret_key):
 
 
 # loq find <search_term> <path>
-def loq_find(seach_term, target_dir, secret_key):
+def loq_find(search_term, target_dir, secret_key):
     loq_files = []
     matches = []
     match_lines = {}
@@ -183,7 +183,7 @@ def loq_find(seach_term, target_dir, secret_key):
     for loq_file in loq_files:
         loq_contents = read_loq_file(loq_file, secret_key)
         for line_num, line in loq_contents.split("\n"):
-            if seach_term in line:
+            if search_term in line:
                 if loq_file not in matches:
                     matches.append(loq_file)
                 if loq_file not in match_lines:
