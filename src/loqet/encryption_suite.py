@@ -11,6 +11,7 @@ read_loq_file       get unencrypted contents of loq file
 write_loq_file      encrypt contents and write them to a loq file
 
 CLI:
+loq init            generate or set loq key
 loq encrypt         encrypt a file
 loq decrypt         unencrypt a file
 loq print           print encrypted file contents

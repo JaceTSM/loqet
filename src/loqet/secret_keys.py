@@ -37,7 +37,7 @@ def write_secret_key(context_name, secret_key=None):
     return keyfile
 
 
-def write_master_key(secret_key=None):
+def write_loq_key(secret_key=None):
     if not secret_key:
         secret_key = generate_secret_key()
     if os.path.exists(LOQET_KEY_FILE):
@@ -46,9 +46,9 @@ def write_master_key(secret_key=None):
         f.write(secret_key)
 
 
-def get_master_key():
+def get_loq_key():
     if not os.path.exists(LOQET_KEY_FILE):
-        write_master_key()
+        write_loq_key()
     with open(LOQET_KEY_FILE, "rb") as f:
         secret_key = f.read()
     return secret_key

@@ -24,7 +24,7 @@ DEFAULT_LOQET_CONFIG_DIR = os.path.join(USER_HOME, ".loqet")
 LOQET_CONFIG_DIR = os.environ.get("LOQET_CONFIG_DIR", DEFAULT_LOQET_CONFIG_DIR)
 
 # Secret key to encrypt/decrypt files not associated with a loqet context
-DEFAULT_LOQET_KEY_FILE = os.path.join(LOQET_CONFIG_DIR, "loqet.key")
+DEFAULT_LOQET_KEY_FILE = os.path.join(LOQET_CONFIG_DIR, "loq.key")
 LOQET_KEY_FILE = os.environ.get("LOQET_KEY_FILE", DEFAULT_LOQET_KEY_FILE)
 
 # Where loqet context info is kept

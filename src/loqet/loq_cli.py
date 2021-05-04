@@ -9,20 +9,26 @@ from loqet.encryption_suite import (
     loq_encrypt_file, loq_decrypt_file, loq_view_file, loq_print_file,
     loq_edit_file, loq_diff, loq_find
 )   # noqa
-from loqet.secret_keys import get_master_key    # noqa
+from loqet.secret_keys import write_loq_key, get_loq_key  # noqa
 from loqet.cli_utils import SAFE_ARG, subparser_setup   # noqa
 
 
 loq_commands = {
+    "init": {
+        "help": "Generate or set your loq key",
+        "subparser_args": [
+            "--loq-key",
+        ],
+    },
     "encrypt": {
-        "help": "Encrypt a non-.loq file with the loqet master key",
+        "help": "Encrypt a non-.loq file with the loq key",
         "subparser_args": [
             "encrypt_file_path",
             SAFE_ARG,
         ],
     },
     "decrypt": {
-        "help": "Decrypt a .loq file with the loqet master key",
+        "help": "Decrypt a .loq file with the loq key",
         "subparser_args": [
             "decrypt_file_path",
             SAFE_ARG,
@@ -71,22 +77,24 @@ def loq_parse_args():
 
 
 def loq_command_router(args):
-    master_key = get_master_key()
-    if args.command == "encrypt":
-        loq_encrypt_file(args.encrypt_file_path, master_key, safe=args.safe)
+    loq_key = get_loq_key()
+    if args.command == "init":
+        write_loq_key(args.loq_key)
+    elif args.command == "encrypt":
+        loq_encrypt_file(args.encrypt_file_path, loq_key, safe=args.safe)
     elif args.command == "decrypt":
-        loq_decrypt_file(args.decrypt_file_path, master_key, safe=args.safe)
+        loq_decrypt_file(args.decrypt_file_path, loq_key, safe=args.safe)
     elif args.command == "print":
-        loq_print_file(args.print_file_path, master_key)
+        loq_print_file(args.print_file_path, loq_key)
     elif args.command == "view":
-        loq_view_file(args.view_file_path, master_key)
+        loq_view_file(args.view_file_path, loq_key)
     elif args.command == "edit":
         # TODO: enable loq encrypt/decrypt on file globs
-        loq_edit_file(args.edit_file_path, master_key, safe=args.safe)
+        loq_edit_file(args.edit_file_path, loq_key, safe=args.safe)
     elif args.command == "diff":
-        loq_diff(args.diff_file_path_1, args.diff_file_path_2, master_key)
+        loq_diff(args.diff_file_path_1, args.diff_file_path_2, loq_key)
     elif args.command == "find":
-        loq_find(args.search_term, args.find_file_path, master_key)
+        loq_find(args.search_term, args.find_file_path, loq_key)
 
 
 # Entry point for loq command in setup.py
