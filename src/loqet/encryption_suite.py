@@ -36,7 +36,7 @@ from cryptography.fernet import Fernet
 
 from loqet.loqet_configs import SAFE_MODE, EDITOR
 from loqet.exceptions import LoqetInvalidExtensionException
-from loqet.utilities import read_file, write_file, backup_file, update_gitignore
+from loqet.file_utils import read_file, write_file, backup_file, update_gitignore
 
 
 ####################

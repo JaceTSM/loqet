@@ -46,7 +46,7 @@ from loqet.encryption_suite import (
     loq_decrypt_file, loq_encrypt_file, read_loq_file,
     loq_edit_file, loq_diff
 )
-from loqet.utilities import read_file
+from loqet.file_utils import read_file
 
 
 # valid_extensions list also defines order of load precedence
