@@ -1,4 +1,17 @@
 """
+Loqet Context Management
+
+Tools for managing loqet contexts (project-specific secret stores)
+
+
+loqet context init      Create a loqet context
+loqet context get       get name of active loqet context
+loqet context list      list all loqet contexts
+loqet context info      get config info about a context (default: active)
+loqet context set       set active context
+loqet context unset     unset active context
+
+
 Goals:
 
 * Create a per-project secret-store
@@ -102,7 +115,7 @@ class ContextConfig(object):
             raise LoqetContextConflictException(
                 f"Context '{name}' exists already, taking no action"
             )
-        elif name in INVALID_CONTEXT_NAMES:
+        elif name.lower() in INVALID_CONTEXT_NAMES:
             raise LoqetInvalidContextException(
                 f"Invalid context name '{name}'. "
                 f"Context may not be any of: {INVALID_CONTEXT_NAMES}"
@@ -120,7 +133,7 @@ class ContextConfig(object):
 # Context API #
 ###############
 
-# loqet init <context_name> <target_directory> [secret_key]
+# loqet context init <context_name> <target_directory> [secret_key]
 def create_loqet_context(context_name, loqet_dir, secret_key=None):
     """
     Creates a named loqet secret store in the target directory,
@@ -166,11 +179,6 @@ def set_loqet_context(name):
 def unset_loqet_context():
     set_loqet_context(None)
 
-
-#######
-# CLI #
-#######
-# TODO: move to cli script
 
 # loqet context list
 def list_loqet_contexts():
