@@ -37,13 +37,22 @@ def write_secret_key(context_name, secret_key=None):
     return keyfile
 
 
-def write_loq_key(secret_key=None):
-    if not secret_key:
-        secret_key = generate_secret_key()
+def write_loq_key():
+    secret_key = generate_secret_key()
     if os.path.exists(LOQET_KEY_FILE):
-        backup_file(LOQET_KEY_FILE)
+        print(f"Key already exists at {LOQET_KEY_FILE}. Please remove to re-initialize.")
+        return False
+        # backup_file(LOQET_KEY_FILE)
+    elif not os.path.exists(LOQET_CONFIG_DIR):
+        os.mkdir(LOQET_CONFIG_DIR)
     with open(LOQET_KEY_FILE, "wb") as f:
         f.write(secret_key)
+    print(
+        f"Loq key written to {LOQET_KEY_FILE}. DO NOT LOSE THIS FILE. "
+        f"If you encrypt something with this key, and you lose the key, "
+        f"it is gone forever."
+    )
+    return True
 
 
 def get_loq_key():

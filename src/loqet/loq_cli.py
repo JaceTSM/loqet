@@ -5,6 +5,7 @@ import sys
 pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pkg_dir)
 
+from loqet.loqet_configs import LOQET_KEY_FILE  # noqa
 from loqet.encryption_suite import (
     loq_encrypt_file, loq_decrypt_file, loq_view_file, loq_print_file,
     loq_edit_file, loq_diff, loq_find
@@ -15,10 +16,8 @@ from loqet.cli_utils import SAFE_ARG, subparser_setup   # noqa
 
 loq_commands = {
     "init": {
-        "help": "Generate or set your loq key",
-        "subparser_args": [
-            "--loq-key",
-        ],
+        "help": "Generate your loq key",
+        "subparser_args": [],
     },
     "encrypt": {
         "help": "Encrypt a non-.loq file with the loq key",
@@ -79,7 +78,7 @@ def loq_parse_args():
 def loq_command_router(args):
     loq_key = get_loq_key()
     if args.command == "init":
-        write_loq_key(args.loq_key)
+        write_loq_key()
     elif args.command == "encrypt":
         loq_encrypt_file(args.encrypt_file_path, loq_key, safe=args.safe)
     elif args.command == "decrypt":

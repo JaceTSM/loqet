@@ -8,7 +8,9 @@ from loqet.loqet_configs import SAFE_MODE
 def backup_file(filename):
     if SAFE_MODE:
         update_gitignore(filename)
-    shutil.copyfile(filename, f"{filename}.bak.{int(time.time())}")
+    backup_filename = f"{filename}.bak.{int(time.time())}"
+    shutil.copyfile(filename, backup_filename)
+    print(f"Backed up old {filename} to {backup_filename}")
 
 
 def update_gitignore(filename):
@@ -17,7 +19,7 @@ def update_gitignore(filename):
     at LOQET_GITIGNORE with .open/.bak extensions
     """
     gitignore_entries = [
-        "*.open*"
+        "*.open*",
         "*.bak.*"
     ]
 
@@ -30,10 +32,13 @@ def update_gitignore(filename):
         else default_gitignore_file
     )
     with open(gitignore_file, "a+") as f:
+        f.seek(0)
         contents = f.read()
         for entry in gitignore_entries:
             if entry not in contents:
-                f.write(entry)
+                if len(contents) > 0:
+                    f.write("\n")
+                f.write(f"{entry}\n")
 
 
 def read_file(filename):
