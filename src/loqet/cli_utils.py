@@ -1,5 +1,6 @@
 # SAFE_ARG/UNSAFE_ARG are shortcuts for `--safe`
-# and `--unsafe` boolean subparser args
+# and `--unsafe` boolean subparser args.
+# Use --safe for commands that should default to "unsafe"
 SAFE_ARG = {
     "args": ["--safe"],
     "kwargs": {
@@ -7,6 +8,7 @@ SAFE_ARG = {
     },
 }
 
+# Use --unsafe for commands that should default to "safe"
 UNSAFE_ARG = {
     "args": ["--unsafe"],
     "kwargs": {
@@ -15,7 +17,7 @@ UNSAFE_ARG = {
 }
 
 
-def subparser_setup(subparser_list, command_dict):
+def subparser_setup(subparser_list, command_dict: dict) -> None:
     """
     Add set of subparser commands to a subparser list.
 

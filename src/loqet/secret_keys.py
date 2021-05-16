@@ -1,14 +1,19 @@
 import os
 from cryptography.fernet import Fernet
-from loqet.loqet_configs import LOQET_CONFIG_DIR, LOQET_KEY_FILE
+from loqet.loqet_configs import LOQET_CONFIG_DIR, LOQ_KEY_FILE
 from loqet.file_utils import backup_file
 
 
-def generate_secret_key():
+def generate_secret_key() -> bytes:
+    """
+    Generate Fernet secret key for encrypting and decrypting messages
+
+    :return: [bytes] fernet secret key
+    """
     return Fernet.generate_key()
 
 
-def write_secret_key(context_name, secret_key=None):
+def write_secret_key(context_name: str, secret_key: bytes = None) -> str:
     """
     Associates a secret key with a context.
     * Writes key to $LOQET_CONFIG_DIR/<context_name>.key
@@ -25,7 +30,7 @@ def write_secret_key(context_name, secret_key=None):
         secret_key = generate_secret_key()
 
     keyfile = f"{context_name}.key"
-    keyfile_path = os.path.join(LOQET_CONFIG_DIR, f"{context_name}.key")
+    keyfile_path = os.path.join(LOQET_CONFIG_DIR, keyfile)
 
     # If there is a secret from an old context with the same name, back it up
     if os.path.exists(keyfile_path):
@@ -34,30 +39,37 @@ def write_secret_key(context_name, secret_key=None):
     with open(keyfile_path, "wb") as f:
         f.write(secret_key)
 
-    return keyfile
+    return keyfile_path
 
 
-def write_loq_key():
+def write_loq_key() -> bool:
+    """
+    Generate base secret key for encrypting and decrypting loq files
+    that are not associated with a loqet context (writes to $LOQ_KEY_FILE)
+
+    :return:    [bool] success
+    """
     secret_key = generate_secret_key()
-    if os.path.exists(LOQET_KEY_FILE):
-        print(f"Key already exists at {LOQET_KEY_FILE}. Please remove to re-initialize.")
-        return False
-        # backup_file(LOQET_KEY_FILE)
-    elif not os.path.exists(LOQET_CONFIG_DIR):
-        os.mkdir(LOQET_CONFIG_DIR)
-    with open(LOQET_KEY_FILE, "wb") as f:
-        f.write(secret_key)
-    print(
-        f"Loq key written to {LOQET_KEY_FILE}. DO NOT LOSE THIS FILE. "
-        f"If you encrypt something with this key, and you lose the key, "
-        f"it is gone forever."
-    )
-    return True
+    if os.path.exists(LOQ_KEY_FILE):
+        success = False
+    else:
+        if not os.path.exists(LOQET_CONFIG_DIR):
+            os.mkdir(LOQET_CONFIG_DIR)
+        with open(LOQ_KEY_FILE, "wb") as f:
+            f.write(secret_key)
+        success = True
+    return success
 
 
-def get_loq_key():
-    if not os.path.exists(LOQET_KEY_FILE):
+def get_loq_key() -> bytes:
+    """
+    Retrieve base secret key for encrypting and decrypting loq files
+    from loq config ($LOQ_KEY_FILE)
+
+    :return: [bytes] loq secret key
+    """
+    if not os.path.exists(LOQ_KEY_FILE):
         write_loq_key()
-    with open(LOQET_KEY_FILE, "rb") as f:
+    with open(LOQ_KEY_FILE, "rb") as f:
         secret_key = f.read()
     return secret_key

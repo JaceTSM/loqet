@@ -1,5 +1,5 @@
 """
-Encryption Suite (loq api)
+Encryption Suite: loq api
 
 Tools for encrypting files, and interacting with encrypted
 files not associated with a loqet context.
@@ -7,31 +7,21 @@ files not associated with a loqet context.
 Base Encryption Suite API:
 encrypt_message     encrypt string contents
 decrypt_message     decrypt string contents
+validate_loq_file   Determine if a file is valid to be decrypted
 read_loq_file       get unencrypted contents of loq file
 write_loq_file      encrypt contents and write them to a loq file
+loq_encrypt_file    encrypt a file
+loq_decrypt_file    decrypt a loq file
+loq_file_search     find all valid loq files in a directory (recursive)
 
-CLI:
-loq init            generate or set loq key
-loq encrypt         encrypt a file
-loq decrypt         unencrypt a file
-loq print           print encrypted file contents
-loq view            view encrypted file contents in viewer
-loq edit            edit encrypted file in place
-loq diff            compare a loq and open file
-loq find            searches for loq files that contain some text
 """
 
-import difflib
 import os
-import pydoc
-import sys
-import tempfile
-from subprocess import call
 from cryptography.fernet import Fernet
 from typing import List
 
-from loqet.loqet_configs import SAFE_MODE, EDITOR
-from loqet.exceptions import LoqetInvalidExtensionException
+from loqet.loqet_configs import SAFE_MODE
+from loqet.exceptions import LoqInvalidFileException
 from loqet.file_utils import read_file, write_file, backup_file, update_gitignore
 
 
@@ -98,7 +88,6 @@ def read_loq_file(loq_file: str, secret_key: bytes) -> str:
         encrypted_string = raw_file_contents.replace("\n", "").lstrip(LOQ_HEADER)
         decrypted_contents = decrypt_message(encrypted_string, secret_key)
     else:
-        print(f"{loq_file} is not a valid loq file")
         decrypted_contents = None
     return decrypted_contents
 
@@ -123,11 +112,7 @@ def write_loq_file(contents: str, filename: str, secret_key: bytes) -> None:
     write_file(file_formatted_string, filename)
 
 
-###########
-# loq cli #
-###########
-
-# loq encrypt <filename>
+# TODO: enable loq encrypt/decrypt on file globs
 def loq_encrypt_file(filename: str, secret_key: bytes, safe: bool = False) -> str:
     """
     Encrypts a file as a .vault next to it
@@ -149,11 +134,9 @@ def loq_encrypt_file(filename: str, secret_key: bytes, safe: bool = False) -> st
         update_gitignore(filename)
         backup_file(loq_file)
     write_loq_file(contents, loq_file, secret_key)
-    print(f"Wrote encrypted file {loq_file}")
     return loq_file
 
 
-# loq decrypt <filename>
 def loq_decrypt_file(loq_file: str, secret_key: bytes, safe: bool = False) -> str:
     """
     Unencrypts a .loq file as a .open file next to it
@@ -166,108 +149,23 @@ def loq_decrypt_file(loq_file: str, secret_key: bytes, safe: bool = False) -> st
     :param loq_file:    loq file to decrypt
     :param secret_key:  key to decrypt loq file contents with
     :param safe:        If True, backup file overwrites and update gitignore
-    :return:            resulting open file path
+    :return:            resulting open file path. Returns None if invalid loq file
     """
-    if not loq_file.endswith(".loq"):
-        raise LoqetInvalidExtensionException(
+    if not validate_loq_file(loq_file):
+        raise LoqInvalidFileException(
             "Failed to decrypt: '{}'\nloqet files must have .loq extension"
             .format(loq_file)
         )
     decrypted_contents = read_loq_file(loq_file, secret_key)
+    if decrypted_contents is None:
+        return None
     open_file = "{}.open".format(loq_file[:-4])
     if safe or SAFE_MODE:
         update_gitignore(loq_file)
         if os.path.exists(open_file):
             backup_file(open_file)
     write_file(decrypted_contents, open_file)
-    print(f"Wrote unencrypted file to {open_file}")
     return open_file
-
-
-# loq edit <filename>
-def loq_edit_file(loq_file: str, secret_key: bytes, safe: bool = False) -> None:
-    """
-    Edit a loq file in place with an editor (set by env var $EDITOR)
-
-    :param loq_file:    loq file to edit
-    :param secret_key:  key used to encrypt/decrypt loq file contents
-    :param safe:        If True, backup file overwrites and update gitignore
-    :return:            n/a
-    """
-    unencrypted_contents = read_loq_file(loq_file, secret_key)
-    with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
-        tf.seek(0)
-        tf.write(unencrypted_contents.encode())
-        tf.flush()
-        # Opens interactive editor for CLI user to edit file live
-        call([EDITOR, tf.name])
-        tf.seek(0)
-        edited_message = tf.read().decode()
-    if edited_message != unencrypted_contents:
-        if safe or SAFE_MODE:
-            update_gitignore(loq_file)
-            backup_file(loq_file)
-        write_loq_file(edited_message, loq_file, secret_key)
-        print(f"Wrote edits to {loq_file}")
-    else:
-        print("No changes, no action taken")
-
-
-# loq print <filename>
-def loq_print_file(loq_file: str, secret_key: bytes) -> None:
-    """
-    Print decrypted contents of loq file to console
-
-    :param loq_file:    loq file to decrypt and print
-    :param secret_key:  key used to decrypt loq_file contents
-    :return:            n/a
-    """
-    unencrypted_contents = read_loq_file(loq_file, secret_key)
-    print(unencrypted_contents)
-
-
-# loq view <filename>
-def loq_view_file(loq_file: str, secret_key: bytes) -> None:
-    """
-    View decrypted loq file contents in page viewer
-
-    :param loq_file:    loq file to view
-    :param secret_key:  key used to decrypt loq_file contents
-    :return:            n/a
-    """
-    unencrypted_contents = read_loq_file(loq_file, secret_key)
-    pydoc.pager(unencrypted_contents)
-
-
-# loq diff <filepath_1(.loq)> <filepath_2(.loq)>
-def loq_diff(path_1: str, path_2: str, secret_key: bytes) -> None:
-    """
-    Print a unified diff of two files. Either file can be a loq file,
-    in which case the decrypted contents are diffed.
-
-    :param path_1:      path to first file
-    :param path_2:      path to second file
-    :param secret_key:  secret key used to decrypt those two files
-    :return:            n/a
-    """
-    if validate_loq_file(path_1):
-        contents_1 = read_loq_file(path_1, secret_key)
-    else:
-        contents_1 = read_file(path_1)
-
-    if validate_loq_file(path_2):
-        contents_2 = read_loq_file(path_2, secret_key)
-    else:
-        contents_2 = read_file(path_2)
-    contents_1 = [line + "\n" for line in contents_1.split("\n")]
-    contents_2 = [line + "\n" for line in contents_2.split("\n")]
-    diff = difflib.unified_diff(
-        contents_1,
-        contents_2,
-        fromfile=path_1,
-        tofile=path_2
-    )
-    sys.stdout.writelines(diff)
 
 
 def loq_file_search(target_dir: str) -> List[str]:
@@ -284,34 +182,3 @@ def loq_file_search(target_dir: str) -> List[str]:
             if ".loq" in file_path and validate_loq_file(file_path):
                 loq_files.append(file_path)
     return loq_files
-
-
-# loq find <search_term> <path>
-def loq_find(search_term: str, target_dir: str, secret_key: bytes) -> None:
-    """
-
-    :param search_term:
-    :param target_dir:
-    :param secret_key:
-    :return:
-    """
-    matches = []
-    match_lines = {}
-    loq_files = loq_file_search(target_dir)
-
-    for loq_file in loq_files:
-        loq_contents = read_loq_file(loq_file, secret_key)
-        for line_num, line in enumerate(loq_contents.split("\n")):
-            if search_term in line:
-                if loq_file not in matches:
-                    matches.append(loq_file)
-                if loq_file not in match_lines:
-                    match_lines[loq_file] = {line_num: line}
-                else:
-                    match_lines[loq_file][line_num] = line
-
-    print(f"Found {len(matches)} matching .loq files.")
-    for match in matches:
-        print(f"{match}:")
-        for line_num, line in match_lines[match].items():
-            print(f"{' '*4}{str(line_num).rjust(4)}: {line}")

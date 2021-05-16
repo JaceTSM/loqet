@@ -1,11 +1,18 @@
 import os
 import shutil
 import time
+from typing import Union
 
 from loqet.loqet_configs import SAFE_MODE
 
 
-def backup_file(filename):
+def backup_file(filename: str) -> None:
+    """
+    Create a copy of a file with a .bak.<timestamp>
+
+    :param filename:    File path to back up
+    :return:            n/a
+    """
     if SAFE_MODE:
         update_gitignore(filename)
     backup_filename = f"{filename}.bak.{int(time.time())}"
@@ -13,10 +20,13 @@ def backup_file(filename):
     print(f"Backed up old {filename} to {backup_filename}")
 
 
-def update_gitignore(filename):
+def update_gitignore(filename: str) -> None:
     """
     Updates .gitignore at either directory of filename or
     at LOQET_GITIGNORE with .open/.bak extensions
+
+    :param filename:    Target file to place .gitignore next to
+    :return:            n/a
     """
     gitignore_entries = [
         "*.open*",
@@ -41,13 +51,15 @@ def update_gitignore(filename):
                 f.write(f"{entry}\n")
 
 
-def read_file(filename):
+def read_file(filename: str) -> str:
+    """Read contents of file as string"""
     with open(filename, "r") as f:
         contents = f.read()
     return contents
 
 
-def write_file(contents, filename):
+def write_file(contents: Union[str, bytes], filename: str) -> None:
+    """Write string or bytes to file"""
     if isinstance(contents, bytes):
         write_mode = "wb"
     else:
