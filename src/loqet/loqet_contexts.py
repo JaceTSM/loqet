@@ -26,11 +26,11 @@ loqet:          A single namespace in a loqet context
 """
 
 import os
+import re
 import yaml
+from typing import Union
 from loqet.secret_keys import write_secret_key
-from loqet.loqet_configs import (
-    LOQET_CONTEXTS_FILE, INVALID_CONTEXT_NAMES, LOQET_CONFIG_DIR
-)
+from loqet.loqet_configs import LOQET_CONTEXTS_FILE, INVALID_CONTEXT_NAMES
 from loqet.exceptions import (
     LoqetInvalidConfigException,
     LoqetContextConflictException,
@@ -61,7 +61,8 @@ class ContextConfig(object):
         "contexts": {},
     }
 
-    def __init__(self, conf_file=LOQET_CONTEXTS_FILE):
+    def __init__(self, conf_file: str = LOQET_CONTEXTS_FILE) -> None:
+        """Load config file into memory"""
         self._conf_file = conf_file
         if os.path.exists(self._conf_file):
             with open(self._conf_file, "r") as f:
@@ -75,27 +76,63 @@ class ContextConfig(object):
         else:
             self._conf = {}
 
+        # Ensure standard config keys are in conf
         for k, v in self._config_defaults.items():
-            if k not in self._conf:
-                self._conf[k] = v
+            if not self._get_property(k):
+                self._set_property(k, v)
 
-    def _save_changes(self):
+    def _save_changes(self) -> None:
+        """Write in-memory config to file"""
         with open(self._conf_file, "w") as f:
             yaml.safe_dump(self._conf, f)
 
-    def _get_property(self, property_name):
+    def _validate_context_name(self, name: str) -> None:
+        if name in self._get_property("contexts"):
+            raise LoqetContextConflictException(
+                f"Context '{name}' exists already, taking no action"
+            )
+        if name.lower() in INVALID_CONTEXT_NAMES:
+            raise LoqetInvalidContextException(
+                f"Invalid context name '{name}'. "
+                f"Context may not be any of: {INVALID_CONTEXT_NAMES}"
+            )
+        if not name:
+            raise LoqetInvalidContextException(
+                f"Invalid context name '{name}'. "
+                f"Must contain at least one character"
+            )
+        if len(name) > 64:
+            raise LoqetInvalidContextException(
+                f"Invalid context name '{name}'. "
+                f"Must be less than 64 characters."
+            )
+        if not re.match("^[^\\/?%*:|\"<>]+$", name):
+            raise LoqetInvalidContextException(
+                f"Invalid context name '{name}'. "
+                f"Cannot contain invalid characters (\\/?%*:|\"<>)."
+            )
+
+    def _get_property(self, property_name: str) -> Union[str, dict, None]:
+        """Extract single property value from in-memory config"""
         if property_name not in self._conf.keys():
             return None
         return self._conf[property_name]
 
-    def _set_property(self, property_name, value):
+    def _set_property(
+            self,
+            property_name: str,
+            value: Union[str, dict, None]
+    ) -> None:
+        """Set in-memory config value"""
         self._conf[property_name] = value
 
     @property
-    def active_context(self):
+    def active_context(self) -> str:
+        """Get active loqet context"""
         return self._get_property("active_context")
 
-    def set_active_context(self, context_name):
+    def set_active_context(self, context_name: str) -> bool:
+        """Set active loqet context and save config to disk. returns success."""
         contexts = self.get_contexts()
         if context_name is None:
             self.unset_active_context()
@@ -106,32 +143,35 @@ class ContextConfig(object):
         else:
             return False
 
-    def unset_active_context(self):
+    def unset_active_context(self) -> None:
+        """Sets active context to None"""
         self._set_property("active_context", None)
         self._save_changes()
 
-    def get_contexts(self):
+    def get_contexts(self) -> dict:
+        """Get dict of all contexts from config"""
         return self._get_property("contexts") or {}
 
-    def get_context(self, context_name):
+    def get_context(self, context_name: str) -> dict:
+        """Get single context from config"""
         return self.get_contexts().get(context_name)
 
-    def create_context(self, name, loqet_dir):
-        if name in self._conf["contexts"]:
-            raise LoqetContextConflictException(
-                f"Context '{name}' exists already, taking no action"
-            )
-        elif name.lower() in INVALID_CONTEXT_NAMES:
-            raise LoqetInvalidContextException(
-                f"Invalid context name '{name}'. "
-                f"Context may not be any of: {INVALID_CONTEXT_NAMES}"
-            )
-        else:
-            keyfile_path = write_secret_key(context_name=name)
-            self._conf["contexts"][name] = {
-                "loqet_dir": os.path.abspath(loqet_dir),
-                "keyfile": keyfile_path,
-            }
+    def create_context(self, name: str, loqet_dir: str) -> None:
+        """Create a loqet context and save its config to disk"""
+        self._validate_context_name(name)
+        keyfile_path = write_secret_key(context_name=name)
+        self._conf["contexts"][name] = {
+            "loqet_dir": os.path.abspath(loqet_dir),
+            "keyfile": keyfile_path,
+        }
+        self._save_changes()
+
+    def delete_context(self, name: str) -> None:
+        """Remove context from config. Does not clean up key or context dir"""
+        if self.active_context == name:
+            self.unset_active_context()
+        if name in self._conf.get("contexts"):
+            del self._conf["contexts"][name]
             self._save_changes()
 
 
@@ -139,23 +179,32 @@ class ContextConfig(object):
 # Context API #
 ###############
 
-def create_loqet_context(context_name, loqet_dir):
+def create_loqet_context(context_name: str, loqet_dir: str) -> None:
     """
     Creates a named loqet secret store in the target directory,
     and uses the passed in key to encrypt those secrets. A key is
     automatically generated if none is provided. The secret key
     is stored in LOQET_CONTEXT_FILE (default: ~/.loqet/contexts.yaml)
+
+    :param context_name:    Name of loqet context to create
+    :param loqet_dir:       secret store directory to associate with loqet context
+    :return:                n/a
     """
     context_config = ContextConfig()
     context_config.create_context(context_name, loqet_dir)
 
 
-def get_active_context_name():
+def get_active_context_name() -> str:
+    """
+    Get the name of the active loqet context
+
+    :return:    name of active loqet context
+    """
     context_config = ContextConfig()
     return context_config.active_context
 
 
-def get_context_info(context_name=None):
+def get_context_info(context_name: str = None) -> dict:
     """
     Returns keyfile, not the actual key content so it isn't written
     to console. Extract key in another method.
@@ -172,18 +221,21 @@ def get_context_info(context_name=None):
     return context_info
 
 
-def set_loqet_context(name):
+def set_loqet_context(name: str) -> bool:
+    """Set active loqet context and save to config"""
     context_config = ContextConfig()
     success = context_config.set_active_context(name)
     return success
 
 
-def unset_loqet_context():
+def unset_loqet_context() -> None:
+    """Set active loqet context to None and save to config"""
     context_config = ContextConfig()
     context_config.unset_active_context()
 
 
-def get_loqet_contexts():
+def get_loqet_contexts() -> dict:
+    """Get context configs"""
     context_config = ContextConfig()
     contexts = context_config.get_contexts()
     return contexts
@@ -193,19 +245,22 @@ def get_loqet_contexts():
 # Key Access #
 ##############
 
-def get_context_key(context_info):
+def get_context_key(context_info: dict) -> str:
+    """Extract secret key from context config"""
     with open(context_info["keyfile"], "r") as f:
         key = f.read().strip()
     return key
 
 
-def get_active_context_key():
+def get_active_context_key() -> str:
+    """Get secret key for active loqet context"""
     context_name = get_active_context_name()
     context_info = get_context_info(context_name)
     return get_context_key(context_info)
 
 
-def get_context(context_name=None):
+def get_context(context_name: str = None) -> (str, str):
+    """get loqet dir and secret key for a given loqet context"""
     if not context_name:
         context_name = get_active_context_name()
     context_info = get_context_info(context_name)
@@ -213,4 +268,6 @@ def get_context(context_name=None):
     loqet_dir = context_info["loqet_dir"]
     with open(loqet_keyfile, "rb") as f:
         secret_key = f.read()
+    if isinstance(secret_key, bytes):
+        secret_key = secret_key.decode()
     return loqet_dir, secret_key

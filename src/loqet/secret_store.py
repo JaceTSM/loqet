@@ -27,8 +27,9 @@ from typing import List, Tuple
 
 from loqet.loqet_contexts import get_context
 from loqet.encryption_suite import (
-    loq_decrypt_file, loq_encrypt_file, read_loq_file
+    loq_decrypt_file, loq_encrypt_file, load_loq_config
 )
+from loqet.file_utils import read_file
 
 
 # valid_extensions list also defines order of load precedence
@@ -102,25 +103,15 @@ def load_loqet(loqet_name: str, context_name: str = None) -> dict:
     """
     loqet_filename = get_precedent_loqet_filename(loqet_name, context_name)
     if not loqet_filename:
-        return {}
-    if loqet_filename.endswith(".loq"):
-        loqet_contents = load_loq_config(loqet_filename, context_name)
+        loqet_contents = {}
     else:
-        loqet_contents = yaml.safe_load(loqet_filename)
+        loqet_dir, secret_key = get_context(context_name)
+        loqet_path = os.path.join(loqet_dir, loqet_filename)
+        if loqet_path.endswith(".loq"):
+            loqet_contents = load_loq_config(loqet_path, secret_key)
+        else:
+            loqet_contents = yaml.safe_load(read_file(loqet_path))
     return loqet_contents
-
-
-def load_loq_config(loq_path: str, secret_key: bytes) -> dict:
-    """
-    Decrypts a vaulted config file and loads it as dict.
-
-    :param loq_path:        name of loqet to load
-    :param secret_key:      secret key to decrypt loq file
-    :return:                [dict] unencrypted loqet contents
-    """
-    loq_contents = read_loq_file(loq_path, secret_key)
-    config = yaml.safe_load(loq_contents)
-    return config
 
 
 ####################

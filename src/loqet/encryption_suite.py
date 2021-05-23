@@ -17,6 +17,7 @@ loq_file_search     find all valid loq files in a directory (recursive)
 """
 
 import os
+import yaml
 from cryptography.fernet import Fernet
 from typing import List
 
@@ -166,6 +167,19 @@ def loq_decrypt_file(loq_file: str, secret_key: bytes, safe: bool = False) -> st
             backup_file(open_file)
     write_file(decrypted_contents, open_file)
     return open_file
+
+
+def load_loq_config(loq_path: str, secret_key: bytes) -> dict:
+    """
+    Decrypts a vaulted config file and loads it as dict.
+
+    :param loq_path:        name of loqet to load
+    :param secret_key:      secret key to decrypt loq file
+    :return:                [dict] unencrypted loqet contents
+    """
+    loq_contents = read_loq_file(loq_path, secret_key)
+    config = yaml.safe_load(loq_contents)
+    return config
 
 
 def loq_file_search(target_dir: str) -> List[str]:

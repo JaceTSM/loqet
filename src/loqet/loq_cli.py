@@ -34,8 +34,8 @@ sys.path.append(pkg_dir)
 from loqet.file_utils import backup_file, update_gitignore, read_file   # noqa
 from loqet.loqet_configs import LOQ_KEY_FILE, EDITOR, SAFE_MODE  # noqa
 from loqet.encryption_suite import (
-    loq_encrypt_file, loq_decrypt_file, read_loq_file, loq_file_search,
-    write_loq_file, validate_loq_file
+    loq_encrypt_file, loq_decrypt_file, read_loq_file,
+    loq_file_search, write_loq_file, validate_loq_file
 )   # noqa
 from loqet.secret_keys import write_loq_key, get_loq_key  # noqa
 from loqet.cli_utils import SAFE_ARG, subparser_setup   # noqa
@@ -161,16 +161,16 @@ def loq_view_cli(loq_file_path: str) -> None:
     pydoc.pager(unencrypted_contents)
 
 
-def loq_edit_cli(loq_file_path: str, safe: bool) -> None:
+def loq_edit_file(loq_file_path: str, secret_key: bytes, safe: bool) -> None:
     """
     Edit a loq file in place with an editor (set by env var $EDITOR)
 
     :param loq_file_path:   loq file to edit
+    :param secret_key:      fernet key to decrypt/encrypt file
     :param safe:            If True, backup file overwrites and update gitignore
     :return:                n/a
     """
-    loq_key = get_loq_key()
-    unencrypted_contents = read_loq_file(loq_file_path, loq_key) or ""
+    unencrypted_contents = read_loq_file(loq_file_path, secret_key) or ""
     if unencrypted_contents is None:
         print(f"{loq_file_path} is not a valid loq file.")
     with tempfile.NamedTemporaryFile(suffix=".tmp") as tf:
@@ -185,29 +185,37 @@ def loq_edit_cli(loq_file_path: str, safe: bool) -> None:
         if safe or SAFE_MODE:
             update_gitignore(loq_file_path)
             backup_file(loq_file_path)
-        write_loq_file(edited_message, loq_file_path, loq_key)
+        write_loq_file(edited_message, loq_file_path, secret_key)
         print(f"Wrote edits to {loq_file_path}")
     else:
         print("No changes, no action taken")
 
 
-def loq_diff_cli(path_1: str, path_2: str) -> None:
+def loq_edit_cli(loq_file_path: str, safe: bool) -> None:
+    """
+    CLI for loq_edit_file
+    """
+    loq_key = get_loq_key()
+    loq_edit_file(loq_file_path, loq_key, safe=safe)
+
+
+def loq_diff(path_1: str, path_2: str, secret_key: bytes) -> None:
     """
     Print a unified diff of two files. Either file can be a loq file,
     in which case the decrypted contents are diffed.
 
     :param path_1:      path to first file
     :param path_2:      path to second file
+    :param secret_key:  fernet key to decrypt/encrypt file
     :return:            n/a
     """
-    loq_key = get_loq_key()
     if validate_loq_file(path_1):
-        contents_1 = read_loq_file(path_1, loq_key)
+        contents_1 = read_loq_file(path_1, secret_key)
     else:
         contents_1 = read_file(path_1)
 
     if validate_loq_file(path_2):
-        contents_2 = read_loq_file(path_2, loq_key)
+        contents_2 = read_loq_file(path_2, secret_key)
     else:
         contents_2 = read_file(path_2)
     contents_1 = [line + "\n" for line in contents_1.split("\n")]
@@ -219,6 +227,12 @@ def loq_diff_cli(path_1: str, path_2: str) -> None:
         tofile=path_2
     )
     sys.stdout.writelines(diff)
+
+
+def loq_diff_cli(path_1: str, path_2: str) -> None:
+    """CLI for loq_diff"""
+    loq_key = get_loq_key()
+    loq_diff(path_1, path_2, loq_key)
 
 
 def loq_find_cli(search_term: str, target_dir: str) -> None:

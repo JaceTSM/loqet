@@ -57,6 +57,7 @@ context_commands = {
 
 # loqet context init <context_name> <target_directory> [secret_key]
 def loqet_context_init_cli(context_name: str, context_dir: str) -> None:
+    """CLI for create_loqet_context"""
     create_loqet_context(context_name, context_dir)
     context_info = get_context_info(context_name)
     print(f"Loqet context {context_name} "
@@ -66,6 +67,7 @@ def loqet_context_init_cli(context_name: str, context_dir: str) -> None:
 
 # loqet context get
 def loqet_context_get_cli() -> None:
+    """CLI for get_active_context_name"""
     context_name = get_active_context_name()
     if context_name:
         print(context_name)
@@ -75,6 +77,7 @@ def loqet_context_get_cli() -> None:
 
 # loqet context list
 def loqet_context_list_cli() -> None:
+    """CLI for get_loqet_contexts"""
     contexts = get_loqet_contexts()
     active_context = get_active_context_name()
     if not contexts:
@@ -91,6 +94,7 @@ def loqet_context_list_cli() -> None:
 
 # loqet context info
 def loqet_context_info_cli(context_name: str = None) -> None:
+    """CLI for get_context_info"""
     context_info = get_context_info(context_name)
     if context_info:
         print(json.dumps(context_info, indent=2))
@@ -104,6 +108,7 @@ def loqet_context_info_cli(context_name: str = None) -> None:
 
 # loqet context set
 def loqet_context_set_cli(context_name: str) -> None:
+    """CLI for set_loqet_context"""
     success = set_loqet_context(context_name)
     if success:
         print(f"Set active context to {context_name}")
@@ -114,6 +119,7 @@ def loqet_context_set_cli(context_name: str) -> None:
 
 # loqet context unset
 def loqet_context_unset_cli() -> None:
+    """CLI for unset_loqet_context"""
     active_context = get_active_context_name()
     if active_context:
         unset_loqet_context()

@@ -44,15 +44,15 @@ pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pkg_dir)
 
 from loqet.cli_utils import SAFE_ARG, UNSAFE_ARG, subparser_setup   # noqa
-from loqet.encryption_suite import loq_edit_file, loq_diff, read_loq_file   # noqa
+from loqet.encryption_suite import read_loq_file   # noqa
 from loqet.file_utils import read_file  # noqa
 from loqet.loqet_contexts import get_context    # noqa
 from loqet.loqet_context_cli import context_command_parser, context_command_router  # noqa
 from loqet.secret_store import (
     list_loqets, list_loqet_dir, create_loqet, encrypt_loqet, decrypt_loqet,
-    close_loqets, open_loqets, loqet_get, load_loqet,
-    list_loqet_filenames
+    close_loqets, open_loqets, loqet_get, load_loqet, list_loqet_filenames
 )   # noqa
+from loqet.loq_cli import loq_edit_file, loq_diff   # noqa
 
 
 # TODO: Move these to yaml files and convert SAFE/UNSAFE_ARGs into
