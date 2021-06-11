@@ -16,3 +16,7 @@ class LoqetInvalidContextException(Exception):
 
 class LoqInvalidFileException(Exception):
     pass
+
+
+class LoqetInvalidArgumentException(Exception):
+    pass

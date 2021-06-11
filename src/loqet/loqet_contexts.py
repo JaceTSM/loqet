@@ -36,6 +36,7 @@ from loqet.exceptions import (
     LoqetContextConflictException,
     LoqetInvalidContextException
 )
+from loqet.file_utils import update_gitignore
 
 
 ##################
@@ -164,6 +165,7 @@ class ContextConfig(object):
             "loqet_dir": os.path.abspath(loqet_dir),
             "keyfile": keyfile_path,
         }
+        update_gitignore(loqet_dir)
         self._save_changes()
 
     def delete_context(self, name: str) -> None:

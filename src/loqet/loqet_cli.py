@@ -36,6 +36,7 @@ import json
 import os
 import pydoc
 import sys
+import yaml
 
 # By setting the package and path we can invoke this
 # script directly in the checked out repo and via
@@ -43,14 +44,18 @@ import sys
 pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(pkg_dir)
 
-from loqet.cli_utils import SAFE_ARG, UNSAFE_ARG, subparser_setup   # noqa
-from loqet.encryption_suite import read_loq_file   # noqa
+from loqet.cli_utils import (
+    SAFE_ARG, UNSAFE_ARG, LOQ_ARG, OPEN_ARG, subparser_setup
+)   # noqa
+from loqet.encryption_suite import read_loq_file, validate_loq_file   # noqa
+from loqet.exceptions import LoqetInvalidArgumentException
 from loqet.file_utils import read_file  # noqa
 from loqet.loqet_contexts import get_context    # noqa
 from loqet.loqet_context_cli import context_command_parser, context_command_router  # noqa
 from loqet.secret_store import (
     list_loqets, list_loqet_dir, create_loqet, encrypt_loqet, decrypt_loqet,
-    close_loqets, open_loqets, loqet_get, load_loqet, list_loqet_filenames
+    close_loqets, open_loqets, loqet_get, load_loqet, list_loqet_filenames,
+    get_precedent_loqet_filename, read_loqet
 )   # noqa
 from loqet.loq_cli import loq_edit_file, loq_diff   # noqa
 
@@ -68,7 +73,16 @@ loqet_commands = {
     },
     "ls": {
         "help": "List files in context directory",
-        "subparser_args": ["--context"],
+        "subparser_args": [
+            "--context",
+            {
+                "args": ["-p", "--paths"],
+                "kwargs": {
+                    "action": "store_true",
+                    "help": "Print full paths instead of just filenames"
+                },
+            },
+        ],
     },
     "create": {
         "help": "Create a new loqet in a context",
@@ -112,6 +126,15 @@ loqet_commands = {
         "subparser_args": [
             "print_loqet_name",
             "--context",
+            {
+                "args": ["-j", "--json"],
+                "kwargs": {
+                    "action": "store_true",
+                    "help": "Print contents as json"
+                },
+            },
+            LOQ_ARG,
+            OPEN_ARG,
         ],
     },
     "view": {
@@ -119,10 +142,12 @@ loqet_commands = {
         "subparser_args": [
             "view_loqet_name",
             "--context",
+            LOQ_ARG,
+            OPEN_ARG,
         ],
     },
     "edit": {
-        "help": "Modify a loqet contents in place",
+        "help": "edit loqet namespace in editor (modifies .loq file only)",
         "subparser_args": [
             "edit_loqet_name",
             "--context",
@@ -134,6 +159,8 @@ loqet_commands = {
         "subparser_args": [
             "get_namespace_path",
             "--context",
+            LOQ_ARG,
+            OPEN_ARG,
         ],
     },
     # # NOT YET SUPPORTED
@@ -168,9 +195,9 @@ def loqet_list_cli(context_name: str) -> None:
     print("\n".join(context_loqets))
 
 
-def loqet_ls_cli(context_name: str) -> None:
+def loqet_ls_cli(context_name: str, paths: bool = False) -> None:
     """CLI for list_loqet_dir"""
-    context_dir_files = list_loqet_dir(context_name)
+    context_dir_files = list_loqet_dir(context_name, full_paths=paths)
     print("\n".join(context_dir_files))
 
 
@@ -214,17 +241,23 @@ def loqet_open_cli(context_name: str, unsafe: bool) -> None:
     open_loqets(context_name, safe=not unsafe)
 
 
-def loqet_print_cli(loqet_name: str, context_name: str) -> None:
+def loqet_print_cli(
+        loqet_name: str,
+        context_name: str,
+        to_json: bool = False,
+        target: str = "default"
+) -> None:
     """CLI for load_loqet, and print to terminal"""
-    print(load_loqet(loqet_name, context_name))
+    contents = read_loqet(loqet_name, context_name, target)
+    if to_json:
+        contents = json.dumps(yaml.safe_load(contents), indent=2)
+    print(contents)
 
 
-def loqet_view_cli(loqet_name: str, context_name: str) -> None:
+def loqet_view_cli(loqet_name: str, context_name: str, target: str = "default") -> None:
     """CLI for load_loqet, and view in page viewer"""
-    content = load_loqet(loqet_name, context_name)
-    if isinstance(content, dict):
-        pydoc.pager(json.dumps(content, indent=2))
-    elif isinstance(content, str):
+    content = read_loqet(loqet_name, context_name, target)
+    if isinstance(content, str):
         pydoc.pager(content)
     else:
         print("No content to view")
@@ -243,9 +276,9 @@ def loqet_edit_cli(loqet_name: str, context_name: str, safe: bool) -> None:
         loq_edit_file(loq_path, secret_key, safe=safe)
 
 
-def loqet_get_cli(namespace_path: str, context_name: str) -> None:
+def loqet_get_cli(namespace_path: str, context_name: str, target: str = "default") -> None:
     """CLI for loqet_get, and print to terminal as json"""
-    loqet_contents = loqet_get(namespace_path, context_name)
+    loqet_contents = loqet_get(namespace_path, context_name, target)
     print(json.dumps(loqet_contents, indent=2))
 
 
@@ -258,14 +291,18 @@ def loqet_diff_cli(loqet_name: str, context_name: str) -> None:
     loqet_filenames = list_loqet_filenames(loqet_name, context_name)
     if len(loqet_filenames) <= 1:
         print(f"No diff. Less than two files in {loqet_name} loqet: {loqet_filenames}")
-    else:
+    elif len(loqet_filenames) >= 2:
+        pairs = set()
         for f1 in loqet_filenames:
             for f2 in loqet_filenames:
-                if f1 != f2:
-                    print("*" * os.get_terminal_size().columns)
-                    f1_path = os.path.join(loqet_path, f1)
-                    f2_path = os.path.join(loqet_path, f2)
-                    loq_diff(f1_path, f2_path, secret_key)
+                ordered_pair = tuple(sorted([f1, f2]))
+                if f1 != f2 and ordered_pair not in pairs:
+                    pairs.add(ordered_pair)
+        for pair in list(pairs):
+            print("*" * os.get_terminal_size().columns)
+            f1_path = os.path.join(loqet_path, pair[0])
+            f2_path = os.path.join(loqet_path, pair[1])
+            loq_diff(f1_path, f2_path, secret_key)
 
 
 def loqet_find_cli(search_term: str, context_name: str) -> None:
@@ -280,7 +317,7 @@ def loqet_find_cli(search_term: str, context_name: str) -> None:
             file_contents = read_loq_file(file_path, secret_key)
         else:
             file_contents = read_file(file_path)
-        for line_num, line in file_contents.split("\n"):
+        for line_num, line in enumerate(file_contents.split("\n")):     # noqa
             if search_term in line:
                 if filename not in matches:
                     matches.append(filename)
@@ -299,6 +336,18 @@ def loqet_find_cli(search_term: str, context_name: str) -> None:
 #########################
 # Command Parser/Router #
 #########################
+
+def _get_target(args: argparse.Namespace) -> str:
+    if args.loq and args.open:
+        raise LoqetInvalidArgumentException("Can only pass one of --loq or --open")
+    elif args.loq:
+        target = "loq"
+    elif args.open:
+        target = "open"
+    else:
+        target = "default"
+    return target
+
 
 def loqet_parse_args() -> argparse.Namespace:
     """Generate argparser namespace for `loqet` command args"""
@@ -333,7 +382,7 @@ def loqet_command_router(args: argparse.Namespace) -> None:
         if args.command == "list":
             loqet_list_cli(args.context)
         elif args.command == "ls":
-            loqet_ls_cli(args.context)
+            loqet_ls_cli(args.context, args.paths)
         elif args.command == "create":
             loqet_create_cli(args.create_loqet_name, args.context)
         elif args.command == "encrypt":
@@ -345,13 +394,21 @@ def loqet_command_router(args: argparse.Namespace) -> None:
         elif args.command == "open":
             loqet_open_cli(args.context, unsafe=args.unsafe)
         elif args.command == "print":
-            loqet_print_cli(args.print_loqet_name, args.context)
+            target = _get_target(args)
+            loqet_print_cli(
+                args.print_loqet_name,
+                args.context,
+                to_json=args.json,
+                target=target
+            )
         elif args.command == "view":
-            loqet_view_cli(args.view_loqet_name, args.context)
+            target = _get_target(args)
+            loqet_view_cli(args.view_loqet_name, args.context, target)
         elif args.command == "edit":
             loqet_edit_cli(args.edit_loqet_name, args.context, safe=args.safe)
         elif args.command == "get":
-            loqet_get_cli(args.get_namespace_path, args.context)
+            target = _get_target(args)
+            loqet_get_cli(args.get_namespace_path, args.context, target)
         # elif args.command == "set":
         #     loqet_set()
         elif args.command == "diff":

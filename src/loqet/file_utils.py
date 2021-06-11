@@ -32,8 +32,10 @@ def update_gitignore(filename: str) -> None:
         "*.open*",
         "*.bak.*"
     ]
-
-    target_dir = os.path.dirname(os.path.realpath(filename))
+    if os.path.isdir(filename):
+        target_dir = os.path.realpath(filename)
+    else:
+        target_dir = os.path.dirname(os.path.realpath(filename))
     default_gitignore_file = os.path.join(target_dir, ".gitignore")
     gitignore_file = os.environ.get("LOQET_GITIGNORE", default_gitignore_file)
     gitignore_file = (

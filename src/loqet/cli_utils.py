@@ -16,6 +16,22 @@ UNSAFE_ARG = {
     },
 }
 
+LOQ_ARG = {
+    "args": ["--loq"],
+    "kwargs": {
+        "action": "store_true",
+        "help": "target .loq file"
+    },
+}
+
+OPEN_ARG = {
+    "args": ["--open"],
+    "kwargs": {
+        "action": "store_true",
+        "help": "target .open file"
+    },
+}
+
 
 def subparser_setup(subparser_list, command_dict: dict) -> None:
     """

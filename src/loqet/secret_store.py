@@ -23,12 +23,14 @@ Notes:
 
 import os
 import yaml
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from loqet.loqet_contexts import get_context
 from loqet.encryption_suite import (
-    loq_decrypt_file, loq_encrypt_file, load_loq_config
+    loq_decrypt_file, loq_encrypt_file, load_loq_config,
+    validate_loq_file, read_loq_file
 )
+from loqet.exceptions import LoqetInvalidArgumentException
 from loqet.file_utils import read_file
 
 
@@ -93,25 +95,59 @@ def get_precedent_loqet_filename(loqet_name: str, context_name: str = None) -> s
 # Load Loqet Contents #
 #######################
 
-def load_loqet(loqet_name: str, context_name: str = None) -> dict:
+
+def read_loqet(
+        loqet_name: str,
+        context_name: str = None,
+        target: str = "default"
+) -> str:
+    """
+    Read highest precedence loqet file as a string.
+
+    :param loqet_name:      name of loqet to load
+    :param context_name:    loqet context to find named loqet in
+    :param target:          [option: default, loq, open]
+                            default - read highest precedence file
+                            loq/open - target loq or open file
+    :return:                [str] unencrypted loqet contents
+    """
+    loqet_dir, secret_key = get_context(context_name)
+
+    if target == "default":
+        precedent_config = get_precedent_loqet_filename(loqet_name, context_name)
+        target_path = os.path.join(loqet_dir, precedent_config) \
+            if precedent_config else None
+    elif target in ["loq", "open"]:
+        target_path = os.path.join(loqet_dir, f"{loqet_name}.yaml.{target}")
+    else:
+        raise LoqetInvalidArgumentException("target must be in [default, loq, open]")
+
+    if target_path is None:
+        contents = ""
+    elif validate_loq_file(target_path):
+        contents = read_loq_file(target_path, secret_key)
+    else:
+        contents = read_file(target_path)
+    return contents
+
+
+def load_loqet(loqet_name: str, context_name: str = None, target: str = "default") -> dict:
     """
     Load highest precedence loqet file as a dict.
 
     :param loqet_name:      name of loqet to load
     :param context_name:    loqet context to find named loqet in
+    :param target:          [option: default, loq, open]
+                            default - read highest precedence file
+                            loq/open - target loq or open file
     :return:                [dict] unencrypted loqet contents
     """
-    loqet_filename = get_precedent_loqet_filename(loqet_name, context_name)
-    if not loqet_filename:
-        loqet_contents = {}
+    loqet_contents = read_loqet(loqet_name, context_name, target)
+    if loqet_contents:
+        config = yaml.safe_load(loqet_contents)
     else:
-        loqet_dir, secret_key = get_context(context_name)
-        loqet_path = os.path.join(loqet_dir, loqet_filename)
-        if loqet_path.endswith(".loq"):
-            loqet_contents = load_loq_config(loqet_path, secret_key)
-        else:
-            loqet_contents = yaml.safe_load(read_file(loqet_path))
-    return loqet_contents
+        config = {}
+    return config
 
 
 ####################
@@ -129,19 +165,31 @@ def list_loqets(context_name: str = None) -> List[str]:
     loqet_base_names = [
         f.partition(".")[0]
         for f in loqet_files
+        if not f.startswith(".")
     ]
     return sorted(list(set(loqet_base_names)))
 
 
-def list_loqet_dir(context_name: str = None) -> List[str]:
+def list_loqet_dir(
+        context_name: str = None,
+        full_paths: bool = False
+) -> List[str]:
     """
     Returns all filenames in loqet dir
 
     :param context_name:    loqet context to list
+    :param full_paths:      Return list of full paths rather than filenames
     :return:                list of files in loqet context dir
     """
     loqet_dir, _ = get_context(context_name)
-    return os.listdir(loqet_dir)
+    if full_paths:
+        dir_contents = [
+            os.path.join(loqet_dir, item)
+            for item in os.listdir(loqet_dir)
+        ]
+    else:
+        dir_contents = os.listdir(loqet_dir)
+    return dir_contents
 
 
 def create_loqet(loqet_name: str, context_name: str = None) -> bool:
@@ -245,30 +293,49 @@ def open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, 
     return list(zip(loqet_names, successes))
 
 
-def loqet_get(loqet_namespace_path: str, context_name: str = None) -> dict:
+def loqet_get(
+        loqet_namespace_path: str,
+        context_name: str = None,
+        target: str = "default"
+) -> Union[str, dict]:
     """
-    Get contents of loqet config at dot-delimited namespace path
+    Get contents of loqet config at dot-delimited namespace path.
 
     eg:
         loqet_get("loqet_name.path.to.config")
+
+    Notes:
+    * Invalid paths return empty dict
+    * lists can be accessed via numeric index
+        eg. loqet_get("loqet_name.path.to.list.0.foo")
 
     :param loqet_namespace_path:
         dot delimited path to desired config, prefixed
         by namespace (loqet name)
     :param context_name:
         loqet context to search for loqet namespace
+    :param target:
+        [option: default, loq, open]
+        default - read highest precedence file
+        loq/open - target loq or open file
     :return:
         contents of loqet at target path. Dict if not at
         leaf node, string at leaves, and empty dict if nothing
         at the target path.
     """
     loqet_name, _, namespace_path = loqet_namespace_path.partition(".")
-    loqet_contents = load_loqet(loqet_name, context_name)
-    for key in namespace_path.split("."):
-        if isinstance(loqet_contents, dict):
-            loqet_contents = loqet_contents.get(key, {})
-        else:
-            loqet_contents = {}
+    loqet_contents = load_loqet(loqet_name, context_name, target)
+    if namespace_path:
+        for key in namespace_path.split("."):
+            if isinstance(loqet_contents, list):
+                try:
+                    loqet_contents = loqet_contents[int(key)]
+                except (TypeError, IndexError, ValueError):
+                    loqet_contents = {}
+            elif isinstance(loqet_contents, dict):
+                loqet_contents = loqet_contents.get(key, {})
+            else:
+                loqet_contents = {}
     return loqet_contents
 
 
