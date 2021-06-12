@@ -1,19 +1,19 @@
+"""
+Copyright (c) 2021, Timothy Murphy
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+"""
+
 import argparse
 import json
-import os
-import sys
-
-# By setting the package and path we can invoke this
-# script directly in the checked out repo and via
-# standard package import via pip
-pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(pkg_dir)
 
 from loqet.loqet_contexts import (
     create_loqet_context, get_active_context_name, get_loqet_contexts,
     get_context_info, set_loqet_context, unset_loqet_context
-)   # noqa
-from loqet.cli_utils import subparser_setup     # noqa
+)
+from loqet.cli_utils import subparser_setup
 
 
 context_commands = {

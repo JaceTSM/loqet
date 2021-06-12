@@ -1,4 +1,12 @@
 """
+Copyright (c) 2021, Timothy Murphy
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+---------------------------------------------------
+
 loqet cli
 
 Command line tools for interacting with loqet secret stores
@@ -38,30 +46,23 @@ import pydoc
 import sys
 import yaml
 
-# By setting the package and path we can invoke this
-# script directly in the checked out repo and via
-# standard package import via pip
-pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(pkg_dir)
-
 from loqet.cli_utils import (
     SAFE_ARG, UNSAFE_ARG, LOQ_ARG, OPEN_ARG, subparser_setup
-)   # noqa
-from loqet.encryption_suite import read_loq_file, validate_loq_file   # noqa
+)
+from loqet.encryption_suite import read_loq_file
 from loqet.exceptions import LoqetInvalidArgumentException
-from loqet.file_utils import read_file  # noqa
-from loqet.loqet_contexts import get_context    # noqa
-from loqet.loqet_context_cli import context_command_parser, context_command_router  # noqa
+from loqet.file_utils import read_file
+from loqet.loqet_contexts import get_context
+from loqet.loqet_context_cli import context_command_parser, context_command_router
 from loqet.secret_store import (
     list_loqets, list_loqet_dir, create_loqet, encrypt_loqet, decrypt_loqet,
-    close_loqets, open_loqets, loqet_get, load_loqet, list_loqet_filenames,
-    get_precedent_loqet_filename, read_loqet
-)   # noqa
-from loqet.loq_cli import loq_edit_file, loq_diff   # noqa
+    close_loqets, open_loqets, loqet_get, list_loqet_filenames, read_loqet
+)
+from loqet.loq_cli import loq_edit_file, loq_diff
 
 
 # TODO: Move these to yaml files and convert SAFE/UNSAFE_ARGs into
-#       special cases with just --safe/--unsafe (booo special cases)
+#       special cases with just --safe/--unsafe (boo special cases)
 loqet_commands = {
     "help": {
         "help": "Print command usage",
@@ -287,6 +288,7 @@ def loqet_diff_cli(loqet_name: str, context_name: str) -> None:
     Print diff of all configs for a single loqet
     (.loq, .open, and .yaml, if present)
     """
+    diff = ""
     loqet_path, secret_key = get_context(context_name)
     loqet_filenames = list_loqet_filenames(loqet_name, context_name)
     if len(loqet_filenames) <= 1:
@@ -299,10 +301,11 @@ def loqet_diff_cli(loqet_name: str, context_name: str) -> None:
                 if f1 != f2 and ordered_pair not in pairs:
                     pairs.add(ordered_pair)
         for pair in list(pairs):
-            print("*" * os.get_terminal_size().columns)
+            diff += "*" * os.get_terminal_size().columns + "\n"
             f1_path = os.path.join(loqet_path, pair[0])
             f2_path = os.path.join(loqet_path, pair[1])
-            loq_diff(f1_path, f2_path, secret_key)
+            diff += loq_diff(f1_path, f2_path, secret_key)
+    pydoc.pager(diff)
 
 
 def loqet_find_cli(search_term: str, context_name: str) -> None:

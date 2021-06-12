@@ -1,3 +1,11 @@
+"""
+Copyright (c) 2021, Timothy Murphy
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+"""
+
 # SAFE_ARG/UNSAFE_ARG are shortcuts for `--safe`
 # and `--unsafe` boolean subparser args.
 # Use --safe for commands that should default to "unsafe"

@@ -170,6 +170,74 @@ loqet get passwords.users.0.username --loq
 This will get the `users.0.username` config from the `passwords.yaml.loq` file in your active context, even if there is a `passwords.yaml.open` file in the context (the `open` file would normally have higher priority).
 
 ---
+## Loqet API
+
+### loqet context methods
+#### `create_loqet_context(context_name: str, loqet_dir: str) -> None`
+Creates a loqet context named `context_name` with a secret store directory at `loqet_dir`.
+
+#### `get_active_context_name() -> str`
+Returns the name of the active context.
+
+#### `get_context_info(context_name: str = None) -> dict`
+Returns context metadata for target context.
+
+sample output:
+```python
+{
+    "loqet_dir": "/path/to/loqet/dir",
+    "keyfile": "/path/to/loqet/keyfile",
+}
+```
+
+#### `set_loqet_context(name: str) -> bool`
+Set global loqet context to named context. Returns success boolean.
+
+#### `unset_loqet_context() -> None`
+Unsets global loqet context.
+
+#### `get_loqet_contexts() -> dict`
+Returns a dict of metadata of all contexts.
+
+sample output:
+```python
+{
+    "context_1": {
+        "loqet_dir": "/path/to/loqet/dir",
+        "keyfile": "/path/to/loqet/keyfile",
+    },
+    "context_2": {
+        ...
+    },
+}
+```
+
+### loqet secret store methods
+#### `list_loqet_filenames(loqet_name: str, context_name: str = None) -> List[str]`
+List all valid config files for a loqet in a loqet context
+
+#### `get_precedent_loqet_filename()`
+#### `read_loqet()`
+#### `load_loqet()`
+#### `list_loqets()`
+#### `list_loqet_dir()`
+#### `create_loqet()`
+#### `encrypt_loqet()`
+#### `decrypt_loqet()`
+#### `close_loqets()`
+#### `open_loqets()`
+#### `loqet_get()`
+
+
+#### Examples
+```python
+import loqet
+
+loqet.create_loqet_context("")
+
+```
+
+---
 
 ## Loq or Loqet, which should I use?
 `loq` is great for encrypting single files that stand alone and don't need programmatic access. Lock up some passwords, bank account info, or crypto seed phrases to look at later when you need them. Alternatively, if you (securely) give a friend a loq key, you can send each other secret messages. I'll leave that up to you to figure out.

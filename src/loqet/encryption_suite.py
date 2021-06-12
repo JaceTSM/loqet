@@ -1,4 +1,12 @@
 """
+Copyright (c) 2021, Timothy Murphy
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+------------------------------------------------------
+
 Encryption Suite: loq api
 
 Tools for encrypting files, and interacting with encrypted
@@ -150,7 +158,7 @@ def loq_decrypt_file(loq_file: str, secret_key: bytes, safe: bool = False) -> st
     :param loq_file:    loq file to decrypt
     :param secret_key:  key to decrypt loq file contents with
     :param safe:        If True, backup file overwrites and update gitignore
-    :return:            resulting open file path. Returns None if invalid loq file
+    :return:            resulting open file path
     """
     if not validate_loq_file(loq_file):
         raise LoqInvalidFileException(
@@ -158,13 +166,15 @@ def loq_decrypt_file(loq_file: str, secret_key: bytes, safe: bool = False) -> st
             .format(loq_file)
         )
     decrypted_contents = read_loq_file(loq_file, secret_key)
-    if decrypted_contents is None:
-        return None
     open_file = "{}.open".format(loq_file[:-4])
     if safe or SAFE_MODE:
         update_gitignore(loq_file)
         if os.path.exists(open_file):
             backup_file(open_file)
+    # If we go to overwrite an existing file with empty contents,
+    # we make a backup anyway, just in case.
+    if not decrypted_contents and os.path.exists(open_file):
+        backup_file(open_file)
     write_file(decrypted_contents, open_file)
     return open_file
 

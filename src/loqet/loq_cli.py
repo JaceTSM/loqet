@@ -1,4 +1,12 @@
 """
+Copyright (c) 2021, Timothy Murphy
+All rights reserved.
+
+This source code is licensed under the BSD-style license found in the
+LICENSE file in the root directory of this source tree.
+
+-------------------------------------------------
+
 loq cli
 
 Command line interface for the loq encryption suite.
@@ -19,26 +27,19 @@ loq find        searches for loq files that contain some text
 
 import argparse
 import difflib
-import os
 import pydoc
 import sys
 import tempfile
 from subprocess import call
 
-# By setting the package and path we can invoke this
-# script directly in the checked out repo and via
-# standard package import via pip
-pkg_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(pkg_dir)
-
-from loqet.file_utils import backup_file, update_gitignore, read_file   # noqa
-from loqet.loqet_configs import LOQ_KEY_FILE, EDITOR, SAFE_MODE  # noqa
+from loqet.file_utils import backup_file, update_gitignore, read_file
+from loqet.loqet_configs import LOQ_KEY_FILE, EDITOR, SAFE_MODE
 from loqet.encryption_suite import (
     loq_encrypt_file, loq_decrypt_file, read_loq_file,
     loq_file_search, write_loq_file, validate_loq_file
-)   # noqa
-from loqet.secret_keys import write_loq_key, get_loq_key  # noqa
-from loqet.cli_utils import SAFE_ARG, subparser_setup   # noqa
+)
+from loqet.secret_keys import write_loq_key, get_loq_key
+from loqet.cli_utils import SAFE_ARG, subparser_setup
 
 
 loq_commands = {
@@ -199,7 +200,7 @@ def loq_edit_cli(loq_file_path: str, safe: bool) -> None:
     loq_edit_file(loq_file_path, loq_key, safe=safe)
 
 
-def loq_diff(path_1: str, path_2: str, secret_key: bytes) -> None:
+def loq_diff(path_1: str, path_2: str, secret_key: bytes) -> str:
     """
     Print a unified diff of two files. Either file can be a loq file,
     in which case the decrypted contents are diffed.
@@ -226,13 +227,13 @@ def loq_diff(path_1: str, path_2: str, secret_key: bytes) -> None:
         fromfile=path_1,
         tofile=path_2
     )
-    sys.stdout.writelines(diff)
+    return "".join(diff)
 
 
 def loq_diff_cli(path_1: str, path_2: str) -> None:
     """CLI for loq_diff"""
     loq_key = get_loq_key()
-    loq_diff(path_1, path_2, loq_key)
+    pydoc.pager(loq_diff(path_1, path_2, loq_key))
 
 
 def loq_find_cli(search_term: str, target_dir: str) -> None:
