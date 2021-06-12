@@ -1,6 +1,5 @@
 # TODO
-* Test loqet api
-* loqet typehints
-* Docs
-* Tests 4 realz (pytest)
-* Make both apis functional for cli and lib
+* Build and deploy to pypi
+* Beta test!
+* Generate and host docs
+* Make a logo

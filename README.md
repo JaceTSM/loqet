@@ -1,8 +1,26 @@
 # loqet
 Local python secret manager
 
+---
+
 ## How to install
 pip install coming soon
+
+---
+
+## Loq or Loqet, which should I use?
+`loq` is great for encrypting single files that stand alone and don't need programmatic access. Lock up some passwords, bank account info, or crypto seed phrases to look at later when you need them. Alternatively, if you (securely) give a friend a loq key, you can send each other secret messages. I'll leave that up to you to figure out.
+
+`loqet` is great for projects with secrets in their configs, or when you have groups of many secrets. It's also great for secret management in a project shared between multiple contributors, since you can securely share the keyfile, and commit encrypted secrets to a shared version control system.
+
+---
+## Configuration
+
+Environment variables:
+* `LOQET_CONFIG_DIR`: [default: `~/.loqet`] Location of directory containing loqet keys and configs
+* `LOQ_KEY_FILE`: [default: `${LOQET_CONFIG_DIR}/loq.key`] Location of `loq` secret key
+* `LOQET_CONFIG_FILE`: [default: `${LOQET_CONFIG_DIR}/contexts.yaml`] location of loqet context config file
+* SAFE_MODE: [default: `False`] Enforces backing up keys and any files that would be overwritten during `loq` commands. Enforces updating `.gitignore` files on `loq` commands. 
 
 ---
 # CLI Usage
@@ -212,6 +230,8 @@ sample output:
 }
 ```
 
+---
+
 ### loqet secret store methods
 All methods with a `context_name` parameter default to using the active context.
 
@@ -278,7 +298,7 @@ with open(passwords_open_file, "w") as f:
 mysql:
   users:
     - username: rei
-      password: isleep
+      password: eva00
     - username: shinji
       password: eva01
     - username: asuka
@@ -289,19 +309,3 @@ loqet.encrypt_loqet("passwords")
 sample_config = loqet.loqet_get("passwords.mysql.users.1.username")
 print(sample_config)    # prints "shinji"
 ```
-
----
-
-## Loq or Loqet, which should I use?
-`loq` is great for encrypting single files that stand alone and don't need programmatic access. Lock up some passwords, bank account info, or crypto seed phrases to look at later when you need them. Alternatively, if you (securely) give a friend a loq key, you can send each other secret messages. I'll leave that up to you to figure out.
-
-`loqet` is great for projects with secrets in their configs, or when you have groups of many secrets. It's also great for secret management in a project shared between multiple contributors, since you can securely share the keyfile, and commit encrypted secrets to a shared version control system.
-
----
-## Configuration
-
-Environment variables:
-* `LOQET_CONFIG_DIR`: [default: `~/.loqet`] Location of directory containing loqet keys and configs
-* `LOQ_KEY_FILE`: [default: `${LOQET_CONFIG_DIR}/loq.key`] Location of `loq` secret key
-* `LOQET_CONFIG_FILE`: [default: `${LOQET_CONFIG_DIR}/contexts.yaml`] location of loqet context config file
-* SAFE_MODE: [default: `False`] Enforces backing up keys and any files that would be overwritten during `loq` commands. Enforces updating `.gitignore` files on `loq` commands. 
