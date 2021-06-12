@@ -213,28 +213,81 @@ sample output:
 ```
 
 ### loqet secret store methods
-#### `list_loqet_filenames(loqet_name: str, context_name: str = None) -> List[str]`
-List all valid config files for a loqet in a loqet context
+All methods with a `context_name` parameter default to using the active context.
 
-#### `get_precedent_loqet_filename()`
-#### `read_loqet()`
-#### `load_loqet()`
-#### `list_loqets()`
-#### `list_loqet_dir()`
-#### `create_loqet()`
-#### `encrypt_loqet()`
-#### `decrypt_loqet()`
-#### `close_loqets()`
-#### `open_loqets()`
-#### `loqet_get()`
+#### `list_loqet_filenames(loqet_name: str, context_name: str = None) -> List[str]`
+List all valid config files for a loqet in a loqet context.
+
+#### `get_precedent_loqet_filename(loqet_name: str, context_name: str = None) -> str`
+Returns loqet filename with the highest precedence.
+
+#### `read_loqet(loqet_name: str, context_name: str = None, target: str = "default") -> str`
+Read highest precedence loqet file as a string.
+
+`target` options:
+* `"default"` - targets highest precedence loqet file
+* `"loq"` - target `.loq` file
+* `"open"` - target `.open` file
+
+#### `load_loqet(loqet_name: str, context_name: str = None, target: str = "default") -> dict`
+Read highest precedence loqet file and load as a dictionary.
+
+`target` options the same as `read_loqet`
+
+#### `list_loqets(context_name: str = None) -> List[str]`
+Returns list of loqet names in context
+
+#### `list_loqet_dir(context_name: str = None, full_paths: bool = False) -> List[str]`
+Returns all filenames in loqet dir
+
+#### `create_loqet(loqet_name: str, context_name: str = None) -> bool`
+Create a loqet namespace in a loqet context. Returns success boolean.
+
+#### `encrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool`
+Encrypt open config file for a loqet namespace. Returns success boolean.
+
+#### `decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool`
+Decrypt encrypted config file for a loqet namespace. Returns success boolean.
+
+#### `close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]`
+Encrypts all .open files in named loqet context. Returns a list of tuples, pairing loqet names and success per loqet encrypted.
+
+#### `open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]`
+Decrypts all .loq files in named loqet context. Returns a list of tuples, pairing loqet names and success per loqet decrypted.
+
+#### `loqet_get(loqet_namespace_path: str, context_name: str = None, target: str = "default") -> Union[str, dict]`
+Get contents of loqet config at dot-delimited namespace path (eg. `loqet_name.path.to.config`). Invalid paths return empty dict. Lists can be accessed via numeric index (eg. `loqet_get("loqet_name.path.to.list.0.foo")`)
 
 
 #### Examples
 ```python
 import loqet
 
-loqet.create_loqet_context("")
+loqet.create_loqet_context("myproject")
+loqet.set_loqet_context("myproject")
+loqet.create_loqet("passwords")
 
+passwords_open_file = [
+    filename 
+    for filename in loqet.list_loqet_filenames()
+    if filename.endswith(".open")
+][0]
+
+with open(passwords_open_file, "w") as f:
+    f.write("""---
+mysql:
+  users:
+    - username: rei
+      password: isleep
+    - username: shinji
+      password: eva01
+    - username: asuka
+      password: eva02
+""")
+
+loqet.encrypt_loqet("passwords")
+sample_config = loqet.loqet_get("passwords.mysql.users.1.username")
+print(sample_config)    # prints "shinji"
 ```
 
 ---

@@ -274,7 +274,7 @@ def decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False)
 
 def close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]:
     """
-    Encrypts all .open files in named loqet
+    Encrypts all .open files in named loqet context
 
     Does not loq base files (files without .open extension).
     """
