@@ -9,18 +9,18 @@ To use the `loq` encryption tool, you must first set up a `loq key`, which will 
 ## CLI
 `loq` commands:
 ```shell
-#    help                Print loq command help
-#    init                Generate your loq key
-#    encrypt             Encrypt a non-.loq file with the loq key
-#    decrypt             Decrypt a .loq file with the loq key
-#    print               Print decrypted contents of a .loq file
-#    view                View decrypted contents of a .loq file in page viewer
-#    edit                Edit encrypted .loq file in place. Uses $EDITOR
-#                        (default: vim)
-#    diff                Finds differences between two files. Either file can
-#                        be an encrypted loq file.
-#    find                recursively searches directory for .loq files and
-#                        searches each of those files for search_term
+    help                Print loq command help
+    init                Generate your loq key
+    encrypt             Encrypt a non-.loq file with the loq key
+    decrypt             Decrypt a .loq file with the loq key
+    print               Print decrypted contents of a .loq file
+    view                View decrypted contents of a .loq file in page viewer
+    edit                Edit encrypted .loq file in place. Uses $EDITOR
+                        (default: vim)
+    diff                Finds differences between two files. Either file can
+                        be an encrypted loq file.
+    find                recursively searches directory for .loq files and
+                        searches each of those files for search_term
 ```
 
 #### Examples
