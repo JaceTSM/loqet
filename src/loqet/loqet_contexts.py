@@ -42,7 +42,8 @@ from loqet.loqet_configs import LOQET_CONTEXTS_FILE, INVALID_CONTEXT_NAMES
 from loqet.exceptions import (
     LoqetInvalidConfigException,
     LoqetContextConflictException,
-    LoqetInvalidContextException
+    LoqetInvalidContextException,
+    LoqetNoSetContextException
 )
 from loqet.file_utils import update_gitignore
 
@@ -273,6 +274,10 @@ def get_context(context_name: str = None) -> (str, str):
     """get loqet dir and secret key for a given loqet context"""
     if not context_name:
         context_name = get_active_context_name()
+        if not context_name:
+            raise LoqetNoSetContextException(
+                "No active context set and no context specified"
+            )
     context_info = get_context_info(context_name)
     loqet_keyfile = context_info["keyfile"]
     loqet_dir = context_info["loqet_dir"]

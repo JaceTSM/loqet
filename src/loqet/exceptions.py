@@ -7,25 +7,45 @@ LICENSE file in the root directory of this source tree.
 """
 
 
-class LoqetDecryptionException(Exception):
+############################
+# Loqet Context Exceptions #
+############################
+
+class LoqetContextException(Exception):
     pass
 
 
-class LoqetContextConflictException(Exception):
+class LoqetContextConflictException(LoqetContextException):
     pass
 
 
-class LoqetInvalidConfigException(Exception):
+class LoqetInvalidConfigException(LoqetContextException):
     pass
 
 
-class LoqetInvalidContextException(Exception):
+class LoqetInvalidContextException(LoqetContextException):
     pass
 
 
-class LoqInvalidFileException(Exception):
+class LoqetNoSetContextException(LoqetContextException):
     pass
 
 
-class LoqetInvalidArgumentException(Exception):
+####################
+# Loqet Exceptions #
+####################
+
+class LoqetException(Exception):
+    pass
+
+
+class LoqetDecryptionException(LoqetException):
+    pass
+
+
+class LoqInvalidFileException(LoqetException):
+    pass
+
+
+class LoqetInvalidArgumentException(LoqetException):
     pass

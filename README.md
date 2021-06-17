@@ -14,6 +14,32 @@ pip install loqet
 
 ---
 
+## Getting Started
+For more detailed docs, please see the links at the bottom of the page.
+
+`loq`:
+```shell
+# Create loq secret key for loq CLI to use
+loq init
+
+# Encrypt/Decrypt and Interact with encrypted files
+loq encrypt myfile.yaml
+loq edit myfile.yaml.loq
+loq view myfile.yaml.loq
+loq decrypt myfile.yaml.loq
+```
+
+`loqet`:
+```shell
+# Create loqet context named "myproject", and set it as the active context
+loqet context init myproject /path/to/myproject/secret_dir
+loqet context set myproject
+
+loqet create passwords
+```
+
+---
+
 ## Loq or Loqet, which should I use?
 `loq` is great for encrypting single files that stand alone and don't need programmatic access. Lock up some passwords, bank account info, or crypto seed phrases to look at later when you need them. Alternatively, if you (securely) give a friend a loq key, you can send each other secret messages. I'll leave that up to you to figure out.
 

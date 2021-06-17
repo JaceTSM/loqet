@@ -50,7 +50,7 @@ from loqet.cli_utils import (
     SAFE_ARG, UNSAFE_ARG, LOQ_ARG, OPEN_ARG, subparser_setup
 )
 from loqet.encryption_suite import read_loq_file
-from loqet.exceptions import LoqetInvalidArgumentException
+from loqet.exceptions import LoqetInvalidArgumentException, LoqetNoSetContextException
 from loqet.file_utils import read_file
 from loqet.loqet_contexts import get_context
 from loqet.loqet_context_cli import context_command_parser, context_command_router
@@ -204,9 +204,9 @@ def loqet_ls_cli(context_name: str, paths: bool = False) -> None:
 
 def loqet_create_cli(loqet_name: str, context_name: str) -> None:
     """CLI for create_loqet"""
-    success = create_loqet(loqet_name, context_name)
-    if success:
-        print(f"Created '{loqet_name}' loqet")
+    open_path = create_loqet(loqet_name, context_name)
+    if open_path:
+        print(f"Created '{loqet_name}' loqet at '{open_path}'")
     else:
         print(f"Failed to create '{loqet_name}' loqet. "
               f"Check to see if the loqet already exists with 'loqet list'.")
@@ -214,18 +214,18 @@ def loqet_create_cli(loqet_name: str, context_name: str) -> None:
 
 def loqet_encrypt_cli(loqet_name: str, context_name: str, safe: bool) -> None:
     """CLI for encrypt_loqet"""
-    success = encrypt_loqet(loqet_name, context_name, safe=safe)
-    if success:
-        print(f"Encrypted '{loqet_name}' loqet")
+    loq_path = encrypt_loqet(loqet_name, context_name, safe=safe)
+    if loq_path:
+        print(f"Encrypted '{loqet_name}' loqet to '{loq_path}'")
     else:
         print(f"Failed to encrypt '{loqet_name}' loqet")
 
 
 def loqet_decrypt_cli(loqet_name: str, context_name: str, safe: bool) -> None:
     """CLI for decrypt_loqet"""
-    success = decrypt_loqet(loqet_name, context_name, safe=safe)
-    if success:
-        print(f"Decrypted '{loqet_name}' loqet")
+    open_path = decrypt_loqet(loqet_name, context_name, safe=safe)
+    if open_path:
+        print(f"Decrypted '{loqet_name}' loqet to '{open_path}'")
     else:
         print(f"Failed to decrypt '{loqet_name}' loqet")
 
@@ -266,15 +266,25 @@ def loqet_view_cli(loqet_name: str, context_name: str, target: str = "default") 
 
 def loqet_edit_cli(loqet_name: str, context_name: str, safe: bool) -> None:
     """Edit loqet encrypted loq config in place via $EDITOR"""
+    loqet_names = list_loqets(context_name)
+    if loqet_name not in loqet_names:
+        print(f"{loqet_name} is not a loqet in the {context_name} context.")
+        return
+
     loqet_filenames = list_loqet_filenames(loqet_name, context_name)
+    base_filename = f"{loqet_name}.yaml"
     loq_filename = f"{loqet_name}.yaml.loq"
+    open_filename = f"{loqet_name}.yaml.open"
     if loq_filename not in loqet_filenames:
-        print(f"{loq_filename} not in loqet. "
-              f"Current {loqet_name} loqet files: {loqet_filenames}")
-    else:
-        loqet_path, secret_key = get_context(context_name)
-        loq_path = os.path.join(loqet_path, loq_filename)
-        loq_edit_file(loq_path, secret_key, safe=safe)
+        if open_filename in loqet_filenames or base_filename in loqet_filenames:
+            encrypt_loqet(loqet_name, context_name, safe=safe)
+        else:
+            print(f"{loq_filename} not in loqet. "
+                  f"Current {loqet_name} loqet files: {loqet_filenames}")
+            return
+    loqet_path, secret_key = get_context(context_name)
+    loq_path = os.path.join(loqet_path, loq_filename)
+    loq_edit_file(loq_path, secret_key, safe=safe)
 
 
 def loqet_get_cli(namespace_path: str, context_name: str, target: str = "default") -> None:
@@ -381,7 +391,14 @@ def loqet_command_router(args: argparse.Namespace) -> None:
     if args.command == "context":
         context_command_router(args)
     else:
-        _, secret_key = get_context(args.context)
+        try:
+            _, secret_key = get_context(args.context)
+        except LoqetNoSetContextException as e:
+            print(e)
+            print("Please set an active context with `loqet context set _` "
+                  "or pass a context with `--context _`")
+            print("Taking no action")
+            return
         if args.command == "list":
             loqet_list_cli(args.context)
         elif args.command == "ls":

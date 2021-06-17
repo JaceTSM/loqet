@@ -70,19 +70,19 @@ Returns list of loqet names in context
 #### `list_loqet_dir(context_name: str = None, full_paths: bool = False) -> List[str]`
 Returns all filenames in loqet dir
 
-#### `create_loqet(loqet_name: str, context_name: str = None) -> bool`
-Create a loqet namespace in a loqet context. Returns success boolean.
+#### `create_loqet(loqet_name: str, context_name: str = None) -> str`
+Create a loqet namespace in a loqet context. Returns created file path.
 
-#### `encrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool`
-Encrypt open config file for a loqet namespace. Returns success boolean.
+#### `encrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> str`
+Encrypt open config file for a loqet namespace. Returns created file path.
 
-#### `decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool`
-Decrypt encrypted config file for a loqet namespace. Returns success boolean.
+#### `decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> str`
+Decrypt encrypted config file for a loqet namespace. Returns created file path.
 
-#### `close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]`
+#### `close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, str]]`
 Encrypts all .open files in named loqet context. Returns a list of tuples, pairing loqet names and success per loqet encrypted.
 
-#### `open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]`
+#### `open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, str]]`
 Decrypts all .loq files in named loqet context. Returns a list of tuples, pairing loqet names and success per loqet decrypted.
 
 #### `loqet_get(loqet_namespace_path: str, context_name: str = None, target: str = "default") -> Union[str, dict]`
@@ -93,13 +93,13 @@ Get contents of loqet config at dot-delimited namespace path (eg. `loqet_name.pa
 ```python
 import loqet
 
-loqet.create_loqet_context("myproject")
+loqet.create_loqet_context("myproject", "/path/to/myproject/secrets/")
 loqet.set_loqet_context("myproject")
 loqet.create_loqet("passwords")
 
 passwords_open_file = [
     filename 
-    for filename in loqet.list_loqet_filenames()
+    for filename in loqet.list_loqet_filenames("passwords")
     if filename.endswith(".open")
 ][0]
 

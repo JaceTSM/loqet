@@ -200,35 +200,38 @@ def list_loqet_dir(
     return dir_contents
 
 
-def create_loqet(loqet_name: str, context_name: str = None) -> bool:
+def create_loqet(loqet_name: str, context_name: str = None) -> Union[str, None]:
     """
     Create a loqet namespace in a loqet context
 
     :param loqet_name:      Name of loqet namespace to create
     :param context_name:    Name of context to create loqet namespace in
-    :return:                [bool] success
+    :return:                [str/None] .open file name
     """
     loqet_dir, _ = get_context(context_name)
     loqet_names = list_loqets(context_name)
     if loqet_name in loqet_names:
-        success = False
+        loqet_path = None
     else:
         loqet_path = os.path.join(loqet_dir, f"{loqet_name}.yaml.open")
         with open(loqet_path, "w") as _:
             # creates empty file
             pass
-        success = True
-    return success
+    return loqet_path
 
 
-def encrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool:
+def encrypt_loqet(
+        loqet_name: str,
+        context_name: str = None,
+        safe: bool = False
+) -> Union[str, None]:
     """
     Encrypt open config file for a loqet namespace
 
     :param loqet_name:      Name of loqet to encrypt
     :param context_name:    Name of context to check for loqet
     :param safe:            If True, make backup of loq file and update gitignore
-    :return:                [bool] Success
+    :return:                [str/None] encrypted file path
     """
     loqet_dir, secret_key = get_context(context_name)
     loqet_files = list_loqet_dir(context_name)
@@ -238,19 +241,21 @@ def encrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False)
         print(f"WARN - both {base_filename} and {open_filename} exist, ignoring {base_filename}")
     if open_filename in loqet_files:
         open_path = os.path.join(loqet_dir, open_filename)
-        loq_encrypt_file(open_path, secret_key, safe=safe)
-        success = True
+        loq_path = loq_encrypt_file(open_path, secret_key, safe=safe)
     elif base_filename in loqet_files:
         base_path = os.path.join(loqet_dir, open_filename)
-        loq_encrypt_file(base_path, secret_key, safe=safe)
-        success = True
+        loq_path = loq_encrypt_file(base_path, secret_key, safe=safe)
     else:
         print(f"WARN - No loqet named {loqet_name} in {loqet_dir}")
-        success = False
-    return success
+        loq_path = None
+    return loq_path
 
 
-def decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False) -> bool:
+def decrypt_loqet(
+        loqet_name: str,
+        context_name: str = None,
+        safe: bool = False
+) -> Union[str, None]:
     """
     Decrypt encrypted config file for a loqet namespace
 
@@ -264,15 +269,14 @@ def decrypt_loqet(loqet_name: str, context_name: str = None, safe: bool = False)
     loqet_filename = f"{loqet_name}.yaml.loq"
     if loqet_filename in loqet_files:
         loq_path = os.path.join(loqet_dir, loqet_filename)
-        loq_decrypt_file(loq_path, secret_key, safe=safe)
-        success = True
+        open_path = loq_decrypt_file(loq_path, secret_key, safe=safe)
     else:
         print(f"WARN - No loqet named {loqet_name} in {loqet_dir}")
-        success = False
-    return success
+        open_path = None
+    return open_path
 
 
-def close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]:
+def close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, str]]:
     """
     Encrypts all .open files in named loqet context
 
@@ -286,7 +290,7 @@ def close_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str,
     return list(zip(loqet_names, successes))
 
 
-def open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, bool]]:
+def open_loqets(context_name: str = None, safe: bool = True) -> List[Tuple[str, str]]:
     """
     Decrypt all loq_config files in named loqet
 
