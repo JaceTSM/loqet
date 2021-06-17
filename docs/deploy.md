@@ -8,5 +8,5 @@ python setup.py sdist bdist_wheel upload
 If pypi doesn't like your readme, get more useful output with:
 ```shell
 # pip install readme-renderer
-readme_renderer README.md
+python -m readme_renderer README.md
 ```
