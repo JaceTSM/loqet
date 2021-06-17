@@ -1,5 +1,6 @@
 ## Quick Start Guide
 For more detailed docs, please see the links at the bottom of the page.
+
 `loq`:
 ```shell
 # Create loq secret key for loq CLI to use (default: ~/.loqet/loq.key)
